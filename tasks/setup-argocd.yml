@@ -48,35 +48,6 @@
         path: /spec/template/spec/containers/0/args/-
         value: --insecure
 
-- name: Create Ingress for ArgoCD
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: networking.k8s.io/v1
-      kind: Ingress
-      metadata:
-        name: argocd-server-ingress
-        namespace: argocd
-        annotations:
-          cert-manager.io/cluster-issuer: "selfsigned-issuer"
-          kubernetes.io/ingress.class: traefik
-      spec:
-        rules:
-          - host: "argocd.homelab.local"
-            http:
-              paths:
-                - path: /
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: argocd-server
-                      port:
-                        number: 80
-        tls:
-          - hosts:
-              - argocd.homelab.local
-            secretName: argocd-server-tls
-
 - name: Bootstrap ArgoCD root application
   kubernetes.core.k8s:
     state: present
