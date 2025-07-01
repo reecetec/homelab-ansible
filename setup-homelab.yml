@@ -42,3 +42,42 @@
         state: present
         src: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
         namespace: argocd
+    
+    - name: Patch argocd-server deployment for Ingress
+      kubernetes.core.k8s_json_patch:
+        kind: Deployment
+        name: argocd-server
+        namespace: argocd
+        patch:
+          - op: add
+            path: /spec/template/spec/containers/0/args/-
+            value: --insecure
+
+    - name: Create Ingress for ArgoCD
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: argocd-server-ingress
+            namespace: argocd
+            annotations:
+              cert-manager.io/cluster-issuer: "selfsigned-issuer"
+              kubernetes.io/ingress.class: traefik
+          spec:
+            rules:
+              - host: "argocd.homelab.local"
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: argocd-server
+                          port:
+                            number: 80
+            tls:
+              - hosts:
+                  - argocd.homelab.local
+                secretName: argocd-server-tls
