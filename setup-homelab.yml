@@ -32,3 +32,14 @@
   tasks:
     - name: Import ArgoCD setup tasks
       ansible.builtin.import_tasks: tasks/setup-argocd.yml
+
+
+- name: Setup Argo events 
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config-homelab"
+  tasks:
+    - name: Import Argo events setup tasks
+      ansible.builtin.import_tasks: tasks/setup-argoevents.yml
