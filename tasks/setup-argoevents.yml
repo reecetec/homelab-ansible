@@ -8,5 +8,15 @@
 - name: Install Argo events
   kubernetes.core.k8s:
     state: present
+    src: https://raw.githubusercontent.com/argoproj/argo-events/stable/manifests/install.yaml
+
+- name: Install validating webhook
+  kubernetes.core.k8s:
+    state: present
     src: https://raw.githubusercontent.com/argoproj/argo-events/stable/manifests/install-validating-webhook.yaml
+
+- name: Add event bus
+  kubernetes.core.k8s:
+    state: present
+    src: https://raw.githubusercontent.com/argoproj/argo-events/stable/examples/eventbus/native.yaml
     namespace: argo-events
