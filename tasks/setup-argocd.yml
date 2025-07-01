@@ -1,0 +1,103 @@
+---
+- name: Install cert-manager
+  kubernetes.core.k8s:
+    state: present
+    src: https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
+
+- name: Wait for cert-manager webhook to be ready
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: cert-manager-webhook
+    namespace: cert-manager
+  register: cert_manager_webhook
+  until: "cert_manager_webhook.resources is defined and cert_manager_webhook.resources | length > 0 and cert_manager_webhook.resources[0].status.readyReplicas is defined and cert_manager_webhook.resources[0].status.readyReplicas > 0"
+  retries: 30
+  delay: 10
+
+- name: Create self-signed ClusterIssuer
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: selfsigned-issuer
+      spec:
+        selfSigned: {}
+
+- name: Create argocd namespace
+  kubernetes.core.k8s:
+    name: argocd
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Install ArgoCD
+  kubernetes.core.k8s:
+    state: present
+    src: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+    namespace: argocd
+
+- name: Patch argocd-server deployment for Ingress
+  kubernetes.core.k8s_json_patch:
+    kind: Deployment
+    name: argocd-server
+    namespace: argocd
+    patch:
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --insecure
+
+- name: Create Ingress for ArgoCD
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: argocd-server-ingress
+        namespace: argocd
+        annotations:
+          cert-manager.io/cluster-issuer: "selfsigned-issuer"
+          kubernetes.io/ingress.class: traefik
+      spec:
+        rules:
+          - host: "argocd.homelab.local"
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: argocd-server
+                      port:
+                        number: 80
+        tls:
+          - hosts:
+              - argocd.homelab.local
+            secretName: argocd-server-tls
+
+- name: Bootstrap ArgoCD root application
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: root
+        namespace: argocd
+        finalizers:
+          - argoproj.io/resources-finalizer.argocd.argoproj.io
+      spec:
+        project: default
+        source:
+          repoURL: https://github.com/reecetec/homelab-gitops.git
+          targetRevision: HEAD
+          path: apps
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: argocd
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
