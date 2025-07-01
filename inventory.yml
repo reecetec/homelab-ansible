@@ -1,16 +1,14 @@
----
-server:
-  vars:
-    k3s_version: v1.32.5+k3s1
-    api_endpoint: k3s-master
-    kubeconfig: ~/.kube/homelab-config
-  hosts:
-    k3s-master:
-
-agent:
-  hosts: {}
-
 k3s_cluster:
   children:
     server:
+      hosts:
+        "{{ ansible_host }}":
     agent:
+      hosts: {}
+
+  vars:
+    ansible_port: 22
+    ansible_user: "{{ ansible_user }}"
+    k3s_version: v1.30.2+k3s1
+    token: "{{ k3s_token }}"
+    api_endpoint: "{{ ansible_host }}"

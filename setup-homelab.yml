@@ -1,0 +1,44 @@
+---
+- name: Install k3s cluster
+  import_playbook: k3s.orchestration.site
+  
+- name: Fetch kubeconfig from master
+  hosts: server
+  gather_facts: false
+  tasks:
+    - name: Fetch kubeconfig file
+      ansible.builtin.fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "{{ lookup('env', 'HOME') }}/.kube/config-homelab"
+        flat: yes
+      run_once: true
+
+- name: Set kubeconfig locally
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Set kubeconfig to use server ip
+      ansible.builtin.replace:
+        path: "{{ lookup('env', 'HOME') }}/.kube/config-homelab"
+        regexp: 'https://127\.0\.0\.1:6443'
+        replace: "https://{{ groups['server'][0] }}:6443"
+
+- name: Setup ArgoCD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config-homelab"
+  tasks:
+    - name: Create argocd namespace
+      kubernetes.core.k8s:
+        name: argocd
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Install ArgoCD
+      kubernetes.core.k8s:
+        state: present
+        src: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+        namespace: argocd

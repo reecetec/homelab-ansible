@@ -1,12 +1,9 @@
 # homelab-ansible
 
-## install ansible
+## install ansible + add deps
 ```bash
 $ pipx install --include-deps ansible
-```
-
-## add k3s
-```bash
+$ pipx inject ansible kubernetes
 $ ansible-galaxy collection install git+https://github.com/k3s-io/k3s-ansible.git
 ```
 
@@ -14,17 +11,28 @@ $ ansible-galaxy collection install git+https://github.com/k3s-io/k3s-ansible.gi
 ```bash
 ansible-vault create secrets.yml
 ```
+
 adding:
 ```yaml
-ansible_host: YOUR_SERVER_IP
-ansible_user: YOUR_USERNAME
+ansible_host: server ip
+ansible_user: server user
+ansible_become_pass: server user's password
+k3s_token: generate with $ openssl rand -base64 64 # this might not have worked, mby debug
 ```
 
 ## setup server
 ```bash
-ansible-playbook k3s.orchestration.site \
-  -i inventory.yml \
+ansible-playbook setup-homelab.yml \
   --extra-vars "@secrets.yml" \
-  --ask-vault-pass \
-  --ask-become-pass
+  --vault-password-file .vault_password
  ```
+
+## add to .zshrc
+```bash
+export KUBECONFIG=~/.kube/config-homelab
+```
+
+## get argo pwd
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
