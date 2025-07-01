@@ -20,7 +20,7 @@ ansible_host: YOUR_SERVER_IP
 ansible_user: YOUR_USERNAME
 ```
 
-
+## setup server
 ```bash
 ansible-playbook k3s.orchestration.site \
   -i inventory.yml \
