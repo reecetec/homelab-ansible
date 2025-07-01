@@ -36,3 +36,12 @@ export KUBECONFIG=~/.kube/config-homelab
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
+
+## access argo gui
+add 
+```
+<server-ip> argocd.homelab.local
+```
+to /etc/hosts.
+
+then visit https://argocd.homelab.local
