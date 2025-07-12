@@ -72,3 +72,12 @@
           automated:
             prune: true
             selfHeal: true
+
+- name: Wait for all pods in argocd to be ready
+  shell: kubectl wait --for=condition=Ready pod --all -n argocd --timeout=300s
+
+- name: Install ArgoCD CLI
+  ansible.builtin.get_url:
+    url: "https://github.com/argoproj/argo-cd/releases/download/v2.11.1/argocd-linux-amd64"
+    dest: "/usr/local/bin/argocd"
+    mode: '0755'
