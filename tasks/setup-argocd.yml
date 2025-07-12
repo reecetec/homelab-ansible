@@ -38,16 +38,6 @@
     src: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
     namespace: argocd
 
-- name: Patch argocd-server deployment for Ingress
-  kubernetes.core.k8s_json_patch:
-    kind: Deployment
-    name: argocd-server
-    namespace: argocd
-    patch:
-      - op: add
-        path: /spec/template/spec/containers/0/args/-
-        value: --insecure
-
 - name: Bootstrap ArgoCD root application
   kubernetes.core.k8s:
     state: present
